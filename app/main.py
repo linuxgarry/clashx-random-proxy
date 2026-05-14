@@ -114,6 +114,7 @@ def fetch_alive_proxies(cur) -> list[dict[str, Any]]:
         d = dict(d)
         d["name"] = f"db{row['id']}-{d.get('name', 'node')}"
         d["__db_id"] = row["id"]
+        d.pop("dialer-proxy", None)
         out.append(d)
     return out
 
@@ -339,6 +340,7 @@ def load_all_proxies_from_db() -> list[dict[str, Any]]:
                 continue
             node["name"] = safe_name(str(node.get("name", "")), db_id)
             node["__db_id"] = db_id
+            node.pop("dialer-proxy", None)
             out.append(node)
     return out
 
