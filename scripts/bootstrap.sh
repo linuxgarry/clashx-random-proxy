@@ -41,9 +41,20 @@ step "random-proxy 部署 [$MODE 模式]"
 # ====== 1. 预检：依赖 ======
 step "预检：依赖"
 command -v docker >/dev/null || die "未找到 docker，先在 unraid Apps 里装 Docker"
-docker compose version >/dev/null 2>&1 || die "未找到 docker compose v2"
 ok "docker $(docker --version | awk '{print $3}' | tr -d ',')"
-ok "compose $(docker compose version --short)"
+
+# 兼容 docker compose v2（推荐）和老的 docker-compose v1
+if docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+    ok "compose v2: $(docker compose version --short)"
+elif command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+    ok "compose v1: $(docker-compose version --short 2>/dev/null || docker-compose --version)"
+    warn "建议升级到 compose v2（unraid 上装 'compose-manager' 插件即可）"
+else
+    die "未找到 docker compose（v2 或 v1 都没有）。
+    解决方法：unraid 上 Community Apps 搜 'compose-manager' 装一下"
+fi
 
 command -v git >/dev/null || die "未找到 git"
 ok "git"
@@ -150,25 +161,25 @@ ok "schema 应用完成"
 
 # ====== 7. 启动容器 ======
 step "拉镜像 + 构建"
-docker compose pull mihomo 2>&1 | tail -3
-docker compose build api tester 2>&1 | tail -5
+$DC pull mihomo 2>&1 | tail -3
+$DC build api tester 2>&1 | tail -5
 ok "构建完成"
 
 step "启动容器"
-docker compose up -d
+$DC up -d
 ok "容器已启动"
 
 # ====== 8. 等 mihomo 就绪 ======
 step "等 mihomo 起来"
 for i in $(seq 1 60); do
-    if docker compose exec -T mihomo wget -qO- http://127.0.0.1:9090/version 2>/dev/null | grep -q version; then
+    if $DC exec -T mihomo wget -qO- http://127.0.0.1:9090/version 2>/dev/null | grep -q version; then
         ok "mihomo 就绪（耗时 ${i}s）"
         break
     fi
     sleep 1
     if [[ $i -eq 60 ]]; then
         red "    mihomo 60s 没起来，看日志："
-        docker compose logs --tail=30 mihomo
+        $DC logs --tail=30 mihomo
         die "mihomo 启动失败"
     fi
 done
@@ -177,7 +188,7 @@ done
 step "Smoke test"
 
 # 9a. mihomo 探活
-if docker compose exec -T mihomo wget -qO- http://127.0.0.1:9090/version >/dev/null 2>&1; then
+if $DC exec -T mihomo wget -qO- http://127.0.0.1:9090/version >/dev/null 2>&1; then
     ok "mihomo /version OK"
 else
     warn "mihomo /version 失败"
@@ -185,11 +196,11 @@ fi
 
 # 9b. API 探活（API 跟 mihomo 共享网络命名空间，所以从 mihomo 容器里 curl 8000）
 sleep 3
-API_HEALTH=$(docker compose exec -T mihomo wget -qO- http://127.0.0.1:8000/healthz 2>/dev/null || echo "")
+API_HEALTH=$($DC exec -T mihomo wget -qO- http://127.0.0.1:8000/healthz 2>/dev/null || echo "")
 if echo "$API_HEALTH" | grep -q ok; then
     ok "API /healthz OK"
 else
-    warn "API 还没起来，看日志：docker compose logs api"
+    warn "API 还没起来，看日志：$DC logs api"
 fi
 
 # ====== 10. 完成 ======
@@ -204,8 +215,8 @@ echo "  代理段:   http://${MIHOMO_IP_DEFAULT}:10000-19999"
 echo
 echo "  常用命令："
 echo "    cd $ROOT"
-echo "    docker compose logs -f tester     # 看测活进度"
-echo "    docker compose logs -f api        # 看 API 日志"
+echo "    $DC logs -f tester     # 看测活进度"
+echo "    $DC logs -f api        # 看 API 日志"
 echo "    curl http://${MIHOMO_IP_DEFAULT}:8000/proxies/alive"
 echo "    curl http://${MIHOMO_IP_DEFAULT}:8000/proxy/12345    # 申请代理"
 echo
