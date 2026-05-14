@@ -64,11 +64,5 @@ services:
 
 networks:
   lan:
-    name: random-proxy-lan
-    driver: macvlan
-    driver_opts:
-      parent: ${MACVLAN_PARENT:-br0}
-    ipam:
-      config:
-        - subnet: ${LAN_SUBNET:-192.168.5.0/24}
-          gateway: ${LAN_GATEWAY:-192.168.5.1}
+    name: ${EXTERNAL_NETWORK:-br0}
+    external: true

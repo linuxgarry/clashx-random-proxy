@@ -112,29 +112,22 @@ set -a; source .env; set +a
 
 : "${PG_HOST:?}" "${PG_USER:?}" "${PG_PASSWORD:?}" "${PG_DB:?}"
 
-# ====== 4. 预检：macvlan 父接口 ======
-step "预检：macvlan 父接口"
-PARENT="${MACVLAN_PARENT:-}"
-if [[ -z "$PARENT" || "$PARENT" == "br0" ]]; then
-    # 探测 unraid 上 UP 的物理桥接口
-    DETECTED=$(ip -o link show 2>/dev/null | awk -F': ' '
-        /state UP/ && ($2 ~ /^br[0-9]+$/ || $2 ~ /^bond[0-9]+$/ || $2 ~ /^eth[0-9]+$/) {
-            print $2; exit
-        }' || true)
-    if [[ -n "$DETECTED" ]]; then
-        PARENT="$DETECTED"
-        ok "探测到父接口：$PARENT"
-        # 写回 .env
-        if grep -q '^MACVLAN_PARENT=' .env; then
-            perl -i -pe "s|^MACVLAN_PARENT=.*|MACVLAN_PARENT=${PARENT}|" .env
-        else
-            echo "MACVLAN_PARENT=${PARENT}" >> .env
-        fi
+# ====== 4. 预检：外部网络 ======
+step "预检：外部 macvlan 网络"
+EXTERNAL_NETWORK="${EXTERNAL_NETWORK:-br0}"
+if docker network inspect "$EXTERNAL_NETWORK" >/dev/null 2>&1; then
+    NET_DRIVER=$(docker network inspect "$EXTERNAL_NETWORK" --format '{{.Driver}}')
+    NET_SUBNET=$(docker network inspect "$EXTERNAL_NETWORK" --format '{{range .IPAM.Config}}{{.Subnet}} {{end}}')
+    ok "网络 \"$EXTERNAL_NETWORK\" 存在（driver=$NET_DRIVER, subnet=$NET_SUBNET）"
+    if grep -q '^EXTERNAL_NETWORK=' .env; then
+        perl -i -pe "s|^EXTERNAL_NETWORK=.*|EXTERNAL_NETWORK=${EXTERNAL_NETWORK}|" .env
     else
-        warn "没探测到，用默认 br0；如果不对，编辑 .env 改 MACVLAN_PARENT 后重跑"
+        echo "EXTERNAL_NETWORK=${EXTERNAL_NETWORK}" >> .env
     fi
 else
-    ok "用 .env 里的 $PARENT"
+    die "找不到外部网络 \"$EXTERNAL_NETWORK\"。
+    用 docker network ls 看你已有的 macvlan 网络名，然后：
+      EXTERNAL_NETWORK=<那个名字> bash scripts/bootstrap.sh"
 fi
 
 # ====== 5. 预检：PG 连通性 ======
