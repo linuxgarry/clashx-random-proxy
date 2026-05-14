@@ -183,11 +183,13 @@ def write_config(cfg: dict[str, Any]) -> None:
 
 async def mihomo_reload() -> None:
     assert mihomo_client is not None
+    # 不传 path：app 视角的 /mihomo/config.yaml 在 mihomo 容器里不存在，
+    # 让 mihomo 用启动时 -d 指定的默认配置文件路径（同一份挂载点下的同一个文件）
     r = await mihomo_client.put(
         f"{MIHOMO_API}/configs",
         params={"force": "true"},
         headers=auth_headers(),
-        json={"path": MIHOMO_CONFIG_FILE},
+        json={},
         timeout=60,
     )
     if r.status_code >= 400:
