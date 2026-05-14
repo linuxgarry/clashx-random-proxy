@@ -1,0 +1,74 @@
+services:
+  mihomo:
+    image: metacubex/mihomo:latest
+    container_name: random-proxy-mihomo
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    networks:
+      lan:
+        ipv4_address: 192.168.5.100
+    volumes:
+      - ./mihomo:/root/.config/mihomo
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:9090/configs"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  api:
+    build: ./api
+    container_name: random-proxy-api
+    restart: unless-stopped
+    depends_on:
+      - mihomo
+    environment:
+      PG_HOST: ${PG_HOST}
+      PG_PORT: ${PG_PORT:-5432}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      PG_DB: ${PG_DB:-proxy}
+      MIHOMO_API: http://mihomo:9090
+      MIHOMO_SECRET: ${MIHOMO_SECRET:-}
+      MIHOMO_CONFIG: /mihomo/config.yaml
+      PORT_MIN: ${PORT_MIN:-10000}
+      PORT_MAX: ${PORT_MAX:-19999}
+      TTL_SECONDS: ${TTL_SECONDS:-300}
+      TZ: Asia/Shanghai
+    volumes:
+      - ./mihomo:/mihomo
+    network_mode: "service:mihomo"
+
+  tester:
+    build: ./tester
+    container_name: random-proxy-tester
+    restart: unless-stopped
+    depends_on:
+      - mihomo
+    environment:
+      PG_HOST: ${PG_HOST}
+      PG_PORT: ${PG_PORT:-5432}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      PG_DB: ${PG_DB:-proxy}
+      MIHOMO_API: http://mihomo:9090
+      MIHOMO_SECRET: ${MIHOMO_SECRET:-}
+      MIHOMO_CONFIG: /mihomo/config.yaml
+      DAILY_CRON: ${DAILY_CRON:-0 3 * * *}
+      TEST_CONCURRENCY: ${TEST_CONCURRENCY:-100}
+      TEST_TIMEOUT_MS: ${TEST_TIMEOUT_MS:-5000}
+      TZ: Asia/Shanghai
+    volumes:
+      - ./mihomo:/mihomo
+    network_mode: "service:mihomo"
+
+networks:
+  lan:
+    name: random-proxy-lan
+    driver: macvlan
+    driver_opts:
+      parent: ${MACVLAN_PARENT:-br0}
+    ipam:
+      config:
+        - subnet: ${LAN_SUBNET:-192.168.5.0/24}
+          gateway: ${LAN_GATEWAY:-192.168.5.1}

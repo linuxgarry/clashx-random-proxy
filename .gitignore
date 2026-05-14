@@ -1,0 +1,31 @@
+# env
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+
+# 数据 / 配置（不要把 mihomo 运行时配置和订阅之类的源数据上传）
+mihomo/config.yaml
+mihomo/cache.db
+mihomo/*.tmp
+mihomo/proxy_providers/
+mihomo/profiles/
+*.csv
+*.json
+target.json
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
