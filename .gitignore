@@ -11,8 +11,8 @@ __pycache__/
 venv/
 .pytest_cache/
 
-# 数据 / 配置（不要把 mihomo 运行时配置和订阅之类的源数据上传）
-mihomo/config.yaml
+# 数据 / 配置（不要把 mihomo 运行时缓存和订阅之类的源数据上传）
+# 注意：mihomo/config.yaml 是初始模板，需要被 git 跟踪，否则容器起来会报 "Can't find config"
 mihomo/cache.db
 mihomo/*.tmp
 mihomo/proxy_providers/

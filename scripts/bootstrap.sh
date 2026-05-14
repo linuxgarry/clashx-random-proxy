@@ -155,7 +155,7 @@ ok "schema 应用完成"
 # ====== 7. 启动容器 ======
 step "拉镜像 + 构建"
 $DC pull mihomo 2>&1 | tail -3
-$DC build api tester 2>&1 | tail -5
+$DC build app 2>&1 | tail -5
 ok "构建完成"
 
 step "启动容器"
@@ -187,13 +187,13 @@ else
     warn "mihomo /version 失败"
 fi
 
-# 9b. API 探活（API 跟 mihomo 共享网络命名空间，所以从 mihomo 容器里 curl 8000）
+# 9b. API 探活（app 跟 mihomo 共享网络命名空间，所以从 mihomo 容器里 wget 8000）
 sleep 3
 API_HEALTH=$($DC exec -T mihomo wget -qO- http://127.0.0.1:8000/healthz 2>/dev/null || echo "")
 if echo "$API_HEALTH" | grep -q ok; then
     ok "API /healthz OK"
 else
-    warn "API 还没起来，看日志：$DC logs api"
+    warn "app 还没起来，看日志：$DC logs app"
 fi
 
 # ====== 10. 完成 ======
@@ -208,8 +208,8 @@ echo "  代理段:   http://${MIHOMO_IP_DEFAULT}:10000-19999"
 echo
 echo "  常用命令："
 echo "    cd $ROOT"
-echo "    $DC logs -f tester     # 看测活进度"
-echo "    $DC logs -f api        # 看 API 日志"
+echo "    $DC logs -f mihomo     # 看 mihomo 日志"
+echo "    $DC logs -f app        # 看 API + 测活日志"
 echo "    curl http://${MIHOMO_IP_DEFAULT}:8000/proxies/alive"
 echo "    curl http://${MIHOMO_IP_DEFAULT}:8000/proxy/12345    # 申请代理"
 echo

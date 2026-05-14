@@ -1,0 +1,38 @@
+# mihomo 启动配置
+# 注意：proxies / listeners 由 tester 和 api 在运行时通过 API 动态写入
+mixed-port: 7890
+allow-lan: true
+mode: rule
+log-level: info
+ipv6: false
+external-controller: 0.0.0.0:9090
+external-controller-cors:
+  allow-origins:
+    - "*"
+  allow-private-network: true
+secret: ""
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
+    - https://dns.google/dns-query
+
+proxies: []
+
+proxy-groups:
+  - name: ALIVE
+    type: select
+    proxies:
+      - DIRECT
+
+rules:
+  - MATCH,ALIVE
