@@ -93,7 +93,7 @@ docker compose up -d
 docker compose logs -f
 ```
 
-第一次启动 tester 会立即跑一轮全量测活（5 万节点大概 15-30 分钟），跑完之后才有 alive 池可用。
+第一次启动 app 会立即跑一轮全量测活（5 万节点大概 15-30 分钟），跑完之后才有 alive 池可用。
 
 ---
 
@@ -179,7 +179,7 @@ docker compose logs -f mihomo
 ### 手动触发一次测活
 
 ```bash
-docker compose exec tester python -c "import asyncio; from tester import run_one_round; asyncio.run(run_one_round())"
+docker compose exec app python -c "import asyncio; from main import run_test; asyncio.run(run_test())"
 ```
 
 ### 看当前激活的 listener
@@ -217,16 +217,15 @@ FROM clashxlist;
 
 ```
 random-proxy/
-├── api/              # FastAPI 服务
+├── app/              # FastAPI + APScheduler 单容器
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── main.py
-├── tester/           # 测活 daemon
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── tester.py
 ├── mihomo/           # mihomo 配置目录（容器挂载点）
-│   └── config.yaml
+│   ├── config.template.yaml   # 入库的初始模板
+│   └── config.yaml            # 运行态（bootstrap.sh 从模板拷贝生成，git 忽略）
+├── scripts/
+│   └── bootstrap.sh
 ├── sql/
 │   └── 001_schema.sql
 ├── docker-compose.yml

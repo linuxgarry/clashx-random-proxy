@@ -152,7 +152,19 @@ docker run --rm -i \
     psql -h "$PG_HOST" -p "${PG_PORT:-5432}" -U "$PG_USER" -d "$PG_DB" -f /sql/001_schema.sql
 ok "schema 应用完成"
 
-# ====== 7. 启动容器 ======
+# ====== 7. 准备 mihomo 配置 ======
+step "准备 mihomo 配置"
+if [[ ! -f mihomo/config.yaml ]]; then
+    if [[ ! -f mihomo/config.template.yaml ]]; then
+        die "缺少 mihomo/config.template.yaml，仓库可能不完整"
+    fi
+    cp mihomo/config.template.yaml mihomo/config.yaml
+    ok "已从 config.template.yaml 生成 config.yaml"
+else
+    ok "mihomo/config.yaml 已存在，跳过"
+fi
+
+# ====== 8. 启动容器 ======
 step "拉镜像 + 构建"
 $DC pull mihomo 2>&1 | tail -3
 $DC build app 2>&1 | tail -5
