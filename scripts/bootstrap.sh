@@ -176,8 +176,8 @@ ok "容器已启动"
 # ====== 8. 等容器就绪 ======
 step "等 app 起来（mihomo + uvicorn 同容器）"
 for i in $(seq 1 60); do
-    if $DC exec -T app curl -fsS http://127.0.0.1:9090/version >/dev/null 2>&1; then
-        ok "mihomo 就绪（耗时 ${i}s）"
+    if $DC exec -T app curl -fsS http://127.0.0.1:8000/healthz >/dev/null 2>&1; then
+        ok "app 就绪（耗时 ${i}s）"
         break
     fi
     sleep 1
@@ -191,13 +191,14 @@ done
 # ====== 9. smoke test ======
 step "Smoke test"
 
-if $DC exec -T app curl -fsS http://127.0.0.1:9090/version >/dev/null 2>&1; then
-    ok "mihomo /version OK"
+# mihomo /version 在配了 secret 后要鉴权，这里用 /proxies 探活（任何 GET 在无 secret 时 200，配了 secret 时 401 也证明在线）
+MIHOMO_HTTP=$($DC exec -T app curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9090/proxies 2>/dev/null || echo "000")
+if [[ "$MIHOMO_HTTP" == "200" || "$MIHOMO_HTTP" == "401" ]]; then
+    ok "mihomo 在线（HTTP $MIHOMO_HTTP）"
 else
-    warn "mihomo /version 失败"
+    warn "mihomo 探活失败（HTTP $MIHOMO_HTTP）"
 fi
 
-sleep 3
 API_HEALTH=$($DC exec -T app curl -fsS http://127.0.0.1:8000/healthz 2>/dev/null || echo "")
 if echo "$API_HEALTH" | grep -q ok; then
     ok "API /healthz OK"
