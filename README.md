@@ -1,7 +1,7 @@
-# 🎲 random-proxy
+# 🎲 clashx-random-proxy
 
 > 把数据库里几万个 clash 节点变成一个**按端口随机分配出口 IP** 的代理池。
-> 跑在 unraid 上，全 docker 化。
+> 跑在 unraid 上，全 docker 化。单容器内含 mihomo + FastAPI。
 
 ---
 
@@ -25,7 +25,7 @@
                  │   :8000          (FastAPI)          │
                  │   :9090          (mihomo API,内部)  │
                  │                                     │
-                 │   random-proxy (单容器)             │
+                 │   clashx-random-proxy (单容器)      │
                  │   ├─ mihomo  (后台进程)             │
                  │   └─ uvicorn (FastAPI + 测活)       │
                  └──────────────┬──────────────────────┘
@@ -37,7 +37,7 @@
                        └──────────────────┘
 ```
 
-单容器 `random-proxy`（IP 192.168.5.100），里面跑两个进程：
+单容器 `clashx-random-proxy`（IP 192.168.5.100），里面跑两个进程：
 
 | 进程 | 职责 |
 |---|---|
@@ -220,7 +220,7 @@ FROM clashxlist;
 ## 📁 项目结构
 
 ```
-random-proxy/
+clashx-random-proxy/
 ├── app/                       # 单容器：mihomo + FastAPI + APScheduler
 │   ├── Dockerfile             # multi-stage：mihomo 二进制 + python:3.12-slim
 │   ├── entrypoint.sh          # mihomo 后台 + uvicorn，wait -n 联动退出

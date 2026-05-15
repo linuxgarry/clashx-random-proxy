@@ -1,8 +1,8 @@
 services:
   app:
     build: ./app
-    image: random-proxy:latest
-    container_name: random-proxy
+    image: clashx-random-proxy:latest
+    container_name: clashx-random-proxy
     restart: unless-stopped
     cap_add:
       - NET_ADMIN

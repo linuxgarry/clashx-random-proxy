@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# random-proxy unraid 一键部署脚本
+# clashx-random-proxy unraid 一键部署脚本
 # 用法（unraid SSH 进去之后）：
 #
-#   curl -fsSL https://raw.githubusercontent.com/linuxgarry/random-proxy/main/scripts/bootstrap.sh | \
+#   curl -fsSL https://raw.githubusercontent.com/linuxgarry/clashx-random-proxy/main/scripts/bootstrap.sh | \
 #     PG_PASSWORD='你的pg密码' bash
 #
 # 或者本地跑（已经 git clone 过）：
@@ -11,8 +11,8 @@
 set -euo pipefail
 
 # ====== 配置 ======
-REPO_URL="${REPO_URL:-https://github.com/linuxgarry/random-proxy.git}"
-INSTALL_DIR="${INSTALL_DIR:-/mnt/user/appdata/random-proxy}"
+REPO_URL="${REPO_URL:-https://github.com/linuxgarry/clashx-random-proxy.git}"
+INSTALL_DIR="${INSTALL_DIR:-/mnt/user/appdata/clashx-random-proxy}"
 PG_HOST_DEFAULT="${PG_HOST:-192.168.5.20}"
 PG_USER_DEFAULT="${PG_USER:-garry}"
 PG_DB_DEFAULT="${PG_DB:-proxy}"
@@ -36,7 +36,7 @@ else
     MODE="remote"
 fi
 
-step "random-proxy 部署 [$MODE 模式]"
+step "clashx-random-proxy 部署 [$MODE 模式]"
 
 # ====== 1. 预检：依赖 ======
 step "预检：依赖"
@@ -209,7 +209,7 @@ fi
 # ====== 10. 完成 ======
 echo
 green "=================================================="
-green "  random-proxy 部署完成 🎉"
+green "  clashx-random-proxy 部署完成 🎉"
 green "=================================================="
 echo
 echo "  容器 IP:  ${MIHOMO_IP_DEFAULT}（macvlan）"

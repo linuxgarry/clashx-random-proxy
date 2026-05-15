@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-random-proxy 单容器入口：FastAPI + APScheduler 测活。
+clashx-random-proxy 单容器入口：FastAPI + APScheduler 测活。
 
 合并自原来的 api/ 和 tester/，共享一份 PG 连接、一份 mihomo HTTP 客户端。
 - HTTP 路由：/proxy/{port} 申请、/proxy/{port}/info 查询、释放、健康、统计
@@ -492,7 +492,7 @@ async def lifespan(app: FastAPI):
         await mihomo_client.aclose()
 
 
-app = FastAPI(title="random-proxy", lifespan=lifespan)
+app = FastAPI(title="clashx-random-proxy", lifespan=lifespan)
 
 
 @app.get("/healthz")
