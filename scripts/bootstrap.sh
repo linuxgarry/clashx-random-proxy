@@ -165,8 +165,7 @@ else
 fi
 
 # ====== 8. 启动容器 ======
-step "拉镜像 + 构建"
-$DC pull mihomo 2>&1 | tail -3
+step "构建镜像（含 mihomo 二进制）"
 $DC build app 2>&1 | tail -5
 ok "构建完成"
 
@@ -174,34 +173,32 @@ step "启动容器"
 $DC up -d
 ok "容器已启动"
 
-# ====== 8. 等 mihomo 就绪 ======
-step "等 mihomo 起来"
+# ====== 8. 等容器就绪 ======
+step "等 app 起来（mihomo + uvicorn 同容器）"
 for i in $(seq 1 60); do
-    if $DC exec -T mihomo wget -qO- http://127.0.0.1:9090/version 2>/dev/null | grep -q version; then
+    if $DC exec -T app curl -fsS http://127.0.0.1:9090/version >/dev/null 2>&1; then
         ok "mihomo 就绪（耗时 ${i}s）"
         break
     fi
     sleep 1
     if [[ $i -eq 60 ]]; then
-        red "    mihomo 60s 没起来，看日志："
-        $DC logs --tail=30 mihomo
-        die "mihomo 启动失败"
+        red "    60s 没起来，看日志："
+        $DC logs --tail=30 app
+        die "启动失败"
     fi
 done
 
 # ====== 9. smoke test ======
 step "Smoke test"
 
-# 9a. mihomo 探活
-if $DC exec -T mihomo wget -qO- http://127.0.0.1:9090/version >/dev/null 2>&1; then
+if $DC exec -T app curl -fsS http://127.0.0.1:9090/version >/dev/null 2>&1; then
     ok "mihomo /version OK"
 else
     warn "mihomo /version 失败"
 fi
 
-# 9b. API 探活（app 跟 mihomo 共享网络命名空间，所以从 mihomo 容器里 wget 8000）
 sleep 3
-API_HEALTH=$($DC exec -T mihomo wget -qO- http://127.0.0.1:8000/healthz 2>/dev/null || echo "")
+API_HEALTH=$($DC exec -T app curl -fsS http://127.0.0.1:8000/healthz 2>/dev/null || echo "")
 if echo "$API_HEALTH" | grep -q ok; then
     ok "API /healthz OK"
 else
@@ -220,8 +217,7 @@ echo "  代理段:   http://${MIHOMO_IP_DEFAULT}:10000-19999"
 echo
 echo "  常用命令："
 echo "    cd $ROOT"
-echo "    $DC logs -f mihomo     # 看 mihomo 日志"
-echo "    $DC logs -f app        # 看 API + 测活日志"
+echo "    $DC logs -f app        # mihomo + API + 测活日志（同容器）"
 echo "    curl http://${MIHOMO_IP_DEFAULT}:8000/proxies/alive"
 echo "    curl http://${MIHOMO_IP_DEFAULT}:8000/proxy/12345    # 申请代理"
 echo

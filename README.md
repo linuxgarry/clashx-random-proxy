@@ -25,7 +25,9 @@
                  │   :8000          (FastAPI)          │
                  │   :9090          (mihomo API,内部)  │
                  │                                     │
-                 │   mihomo  +  app                    │
+                 │   random-proxy (单容器)             │
+                 │   ├─ mihomo  (后台进程)             │
+                 │   └─ uvicorn (FastAPI + 测活)       │
                  └──────────────┬──────────────────────┘
                                 │
                        ┌────────▼─────────┐
@@ -35,12 +37,14 @@
                        └──────────────────┘
 ```
 
-两个容器共享一个 IP（192.168.5.100），分工：
+单容器 `random-proxy`（IP 192.168.5.100），里面跑两个进程：
 
-| 容器 | 职责 |
+| 进程 | 职责 |
 |---|---|
 | 🟢 `mihomo` | 真正的代理核心。监听 10000-19999 区间的动态 listener |
-| 🟡 `app` | FastAPI 服务 + APScheduler 测活。处理 `/proxy/{port}`，按需改 mihomo 配置；每天 03:00 跑一轮全量测活 |
+| 🟡 `uvicorn` | FastAPI 服务 + APScheduler 测活。处理 `/proxy/{port}`，按需改 mihomo 配置；每天 03:00 跑一轮全量测活 |
+
+mihomo 二进制从官方镜像 `metacubex/mihomo:latest` 多阶段拷入。entrypoint 用 `wait -n` 同步两进程生命周期，任一退出整个容器一起退出，由 `restart: unless-stopped` 拉回。
 
 ---
 
@@ -170,10 +174,10 @@ $ curl http://192.168.5.100:8000/health
 
 ## 🧪 调试
 
-### 看 mihomo 实时日志
+### 看实时日志
 
 ```bash
-docker compose logs -f mihomo
+docker compose logs -f app    # mihomo + uvicorn 同容器，日志合一
 ```
 
 ### 手动触发一次测活
@@ -217,11 +221,12 @@ FROM clashxlist;
 
 ```
 random-proxy/
-├── app/              # FastAPI + APScheduler 单容器
-│   ├── Dockerfile
+├── app/                       # 单容器：mihomo + FastAPI + APScheduler
+│   ├── Dockerfile             # multi-stage：mihomo 二进制 + python:3.12-slim
+│   ├── entrypoint.sh          # mihomo 后台 + uvicorn，wait -n 联动退出
 │   ├── requirements.txt
 │   └── main.py
-├── mihomo/           # mihomo 配置目录（容器挂载点）
+├── mihomo/                    # mihomo 配置目录（容器挂载点）
 │   ├── config.template.yaml   # 入库的初始模板
 │   └── config.yaml            # 运行态（bootstrap.sh 从模板拷贝生成，git 忽略）
 ├── scripts/

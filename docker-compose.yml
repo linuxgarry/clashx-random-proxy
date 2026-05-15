@@ -1,27 +1,14 @@
 services:
-  mihomo:
-    image: metacubex/mihomo:latest
-    container_name: random-proxy-mihomo
+  app:
+    build: ./app
+    image: random-proxy:latest
+    container_name: random-proxy
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
     networks:
       lan:
         ipv4_address: 192.168.5.100
-    volumes:
-      - ./mihomo:/root/.config/mihomo
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:9090/configs"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-  app:
-    build: ./app
-    container_name: random-proxy-app
-    restart: unless-stopped
-    depends_on:
-      - mihomo
     environment:
       PG_HOST: ${PG_HOST}
       PG_PORT: ${PG_PORT:-5432}
@@ -41,7 +28,12 @@ services:
       TZ: Asia/Shanghai
     volumes:
       - ./mihomo:/mihomo
-    network_mode: "service:mihomo"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
 networks:
   lan:
